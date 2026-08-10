@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fusionpass"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["torch>=2.2"]
+
+[project.optional-dependencies]
+dev = ["pytest", "lit"]
+# Phase 2: Triton is the copy bundled with the PyTorch wheel (phase-2.md). Do NOT
+# `pip install triton` separately and do not list it here. Default deps keep the
+# Phase 1 CPU pin `torch>=2.2`.
+#
+# GPU extra does not pull a CUDA wheel (index-url is host-specific: cu128 / cu130
+# / …). Install a CUDA-enabled torch from https://download.pytorch.org/whl/ that
+# matches the driver; that wheel provides Triton. This host: RTX 4090, driver
+# 610.60, CUDA 13.3. CPU torch 2.15.0+cpu in .venv does not bundle Triton.
+gpu = ["torch>=2.2"]
+
+[project.scripts]
+fusionpass = "fusionpass.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["python"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
