@@ -1,0 +1,9 @@
+add_llvm_executable(fusionpass-opt fusionpass-opt/fusionpass-opt.cpp)
+llvm_update_compile_flags(fusionpass-opt)
+target_link_libraries(fusionpass-opt PRIVATE MLIROptLib MLIRFuncDialect MLIRFPDialect MLIRFPTransforms)
+mlir_check_all_link_libraries(fusionpass-opt)
+
+add_llvm_executable(fusionpass-compile fusionpass-compile/fusionpass-compile.cpp)
+llvm_update_compile_flags(fusionpass-compile)
+target_link_libraries(fusionpass-compile PRIVATE MLIRParser MLIRPass MLIRFuncDialect MLIRFPDialect MLIRFPPlan MLIRFPTransforms)
+mlir_check_all_link_libraries(fusionpass-compile)
