@@ -1,0 +1,39 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    env:
+      LLVM_PREFIX: ${{ github.workspace }}/llvm-install
+      TRITON_INTERPRET: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Cache LLVM/MLIR install
+        id: llvm-cache
+        uses: actions/cache@v4
+        with:
+          path: llvm-install
+          key: llvm-18.1.8-mlir-${{ runner.os }}
+      - name: Build LLVM/MLIR (cache miss only; slow)
+        if: steps.llvm-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update && sudo apt-get install -y ninja-build build-essential cmake
+          git clone --depth 1 --branch llvmorg-18.1.8 https://github.com/llvm/llvm-project.git
+          cmake -S llvm-project/llvm -B llvm-project/build -G Ninja -DLLVM_ENABLE_PROJECTS=mlir \
+            -DLLVM_TARGETS_TO_BUILD=host -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ASSERTIONS=ON \
+            -DLLVM_INSTALL_UTILS=ON -DLLVM_BUILD_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX=$LLVM_PREFIX
+          cmake --build llvm-project/build --target install
+      - name: Python deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+          pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
+          # CPU wheel does not bundle Triton (verified: host .venv is torch 2.15.0+cpu
+          # with no triton). Pin matches torch 2.15's declared triton~=3.9.0 so the
+          # interpreter can import generated kernels. GPU machines should use the
+          # Triton bundled with the CUDA PyTorch wheel instead of this pin.
+          pip install "triton~=3.9.0" pytest lit && pip install -e .
+      - name: Build, lit, pytest
+        run: bash scripts/build.sh
